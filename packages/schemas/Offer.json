@@ -1,0 +1,47 @@
+{
+  "$id": "Offer",
+  "type": "object",
+  "required": [
+    "id",
+    "propertyId",
+    "roomTypeId",
+    "checkIn",
+    "checkOut",
+    "price",
+    "cancellation",
+    "inventory"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "propertyId": { "type": "string" },
+    "roomTypeId": { "type": "string" },
+    "ratePlan": { "type": "string" },
+    "checkIn": { "type": "string", "format": "date" },
+    "checkOut": { "type": "string", "format": "date" },
+    "price": {
+      "type": "object",
+      "properties": {
+        "currency": { "type": "string" },
+        "base": { "type": "number" },
+        "taxes": { "type": "number" },
+        "fees": { "type": "number" },
+        "total": { "type": "number" }
+      }
+    },
+    "cancellation": {
+      "type": "object",
+      "properties": {
+        "policy": { "type": "string" },
+        "freeUntil": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "inventory": { "type": "integer" },
+    "terms": {
+      "type": "object",
+      "properties": {
+        "payAt": { "type": "string", "enum": ["property", "booking"] }
+      }
+    },
+    "source": { "type": "string" }
+  }
+}

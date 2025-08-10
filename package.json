@@ -1,0 +1,15 @@
+{
+  "name": "booking-network",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm -w services/search-api run build",
+    "dev": "npm -w services/search-api run dev",
+    "start": "npm -w services/search-api run start"
+  },
+  "devDependencies": {}
+}

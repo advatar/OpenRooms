@@ -1,0 +1,40 @@
+{
+  "$id": "BITClaims",
+  "type": "object",
+  "required": [
+    "iss",
+    "aud",
+    "iat",
+    "exp",
+    "jti",
+    "propertyId",
+    "offerId",
+    "leadFeeBps",
+    "discoveryAppId"
+  ],
+  "properties": {
+    "iss": { "type": "string" },
+    "aud": { "type": "string" },
+    "iat": { "type": "integer" },
+    "exp": { "type": "integer" },
+    "jti": { "type": "string" },
+    "propertyId": { "type": "string" },
+    "offerId": { "type": "string" },
+    "leadFeeBps": { "type": "integer" },
+    "discoveryAppId": { "type": "string" },
+    "price": {
+      "type": "object",
+      "properties": {
+        "currency": { "type": "string" },
+        "total": { "type": "number" }
+      }
+    },
+    "stay": {
+      "type": "object",
+      "properties": {
+        "checkIn": { "type": "string", "format": "date" },
+        "checkOut": { "type": "string", "format": "date" }
+      }
+    }
+  }
+}

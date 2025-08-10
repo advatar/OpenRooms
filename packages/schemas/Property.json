@@ -1,0 +1,42 @@
+{
+  "$id": "Property",
+  "type": "object",
+  "required": ["id", "name", "geo", "address", "contact", "amenities"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "geo": {
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number" },
+        "lon": { "type": "number" }
+      }
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "country": { "type": "string" },
+        "locality": { "type": "string" },
+        "street": { "type": "string" },
+        "postalCode": { "type": "string" }
+      }
+    },
+    "contact": {
+      "type": "object",
+      "properties": {
+        "website": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" }
+      }
+    },
+    "photos": { "type": "array", "items": { "type": "string" } },
+    "amenities": { "type": "array", "items": { "type": "string" } },
+    "pms": {
+      "type": "object",
+      "properties": {
+        "vendor": { "type": "string" },
+        "externalId": { "type": "string" }
+      }
+    }
+  }
+}

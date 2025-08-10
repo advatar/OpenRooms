@@ -1,0 +1,22 @@
+{
+  "$id": "RoomType",
+  "type": "object",
+  "required": ["id", "propertyId", "name", "capacity"],
+  "properties": {
+    "id": { "type": "string" },
+    "propertyId": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "capacity": { "type": "integer" },
+    "beds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string" },
+          "count": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

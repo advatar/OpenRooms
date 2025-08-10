@@ -1,0 +1,10 @@
+{
+  "name": "@booking-network/schemas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.json",
+  "files": [
+    "*.json"
+  ]
+}

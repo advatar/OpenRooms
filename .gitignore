@@ -1,0 +1,148 @@
+# ─────────────────────────────────────────────────────────────
+# OS & editors
+# ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
+.idea/
+.vscode/
+.history/
+.fleet/
+*.iml
+
+# ─────────────────────────────────────────────────────────────
+# Node / TypeScript / Monorepo caches
+# ─────────────────────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+.pnp.*
+.npm/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.tsbuildinfo
+.turbo/
+.eslintcache
+.stylelintcache
+
+# Keep lockfiles committed:
+# !pnpm-lock.yaml
+# !yarn.lock
+# !package-lock.json
+
+# ─────────────────────────────────────────────────────────────
+# Builds & bundlers (clients + services)
+# ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+.tmp/
+.temp/
+.vite/
+.next/
+.next/cache/
+.storybook-out/
+storybook-static/
+coverage/
+.nyc_output/
+.lcov-report/
+
+# Per-package build outputs (monorepo)
+clients/**/dist/
+clients/**/build/
+clients/**/.next/
+clients/**/out/
+services/**/dist/
+services/**/build/
+
+# ─────────────────────────────────────────────────────────────
+# Env & secrets (commit an .env.example instead)
+# ─────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+.envrc
+.npmrc
+
+# Key material / certificates (never commit real keys)
+*.pem
+*.key
+*.jwk
+*.p12
+*.pfx
+*.der
+*.crt
+*.cert
+id_rsa*
+id_dsa*
+ssh_known_hosts
+
+# ─────────────────────────────────────────────────────────────
+# Logs & runtime artifacts
+# ─────────────────────────────────────────────────────────────
+logs/
+*.log
+*.pid
+*.pid.lock
+*.seed
+*.coveragerc
+
+# ─────────────────────────────────────────────────────────────
+# Test runners (Cypress / Playwright, etc.)
+# ─────────────────────────────────────────────────────────────
+cypress/videos/
+cypress/screenshots/
+playwright-report/
+test-results/
+
+# ─────────────────────────────────────────────────────────────
+# Local databases & dumps (dev only)
+# ─────────────────────────────────────────────────────────────
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.sqlite-wal
+*.sqlite-shm
+*.sql
+*.dump
+prisma/dev.db
+prisma/dev.db-journal
+drizzle/**/.cache/
+
+# ─────────────────────────────────────────────────────────────
+# Docker-compose’d service data (Postgres/Redis/MinIO/NATS)
+# adjust if you mount different host paths
+# ─────────────────────────────────────────────────────────────
+pgdata/
+redis-data/
+minio-data/
+nats-data/
+es-data/
+data/
+tmp/
+dump.rdb
+appendonly.aof
+
+# ─────────────────────────────────────────────────────────────
+# Infra: Terraform / K8s / Deploy targets
+# ─────────────────────────────────────────────────────────────
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+.kube/
+*.kubeconfig
+helm-chart/**/.chartcache/
+.vercel/
+.netlify/
+
+# ─────────────────────────────────────────────────────────────
+# Generated code (OpenAPI, clients, prisma artifacts, etc.)
+# ─────────────────────────────────────────────────────────────
+generated/
+packages/**/generated/
+openapi-client/

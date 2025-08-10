@@ -1,6 +1,6 @@
 # Prompt for lovable.dev: Open Booking Network UI (MVP)
 
-Build a production-ready, modern web UI for the Open Booking Network MVP that connects to our public APIs. Use a placeholder API base URL: <API_BASE_URL> (replaceable via env). The UI must be accessible, fast, and easy to extend. Follow the detailed spec below.
+Build a production-ready, modern web UI for the Open Booking Network MVP that connects to our public APIs. Use https://api.openrooms.net as the default API base URL (override via env). The UI must be accessible, fast, and easy to extend. Follow the detailed spec below.
 
 ## Tech stack
 - Framework: React (Vite) with TypeScript
@@ -11,16 +11,21 @@ Build a production-ready, modern web UI for the Open Booking Network MVP that co
 - Forms: React Hook Form + Zod validation
 - Build: Vite
 
+## OpenAPI
+- Use the OpenAPI spec in the repository at `openapi.yaml` during development.
+- Optionally generate TypeScript types and a lightweight client from the spec (e.g., `openapi-typescript`, `orval`, or `swagger-typescript-api`).
+- Keep client types in sync with the spec and prefer typed integrations in `lib/api.ts`.
+
 ## Environments
 - Use environment variable for API base URL
-  - Vite: `VITE_API_BASE_URL=<API_BASE_URL>`
-- Provide `.env.example` with placeholder values
+  - Vite: `VITE_API_BASE_URL=https://api.openrooms.net`
+  - Provide `.env.example` with the default above and allow developers to override locally
 
 ## Pages & flows
 
 1) Search page `/search`
 - Inputs: destination text `query`, `checkIn`, `checkOut`, `guests`, optional `bbox`
-- Calls GET `<API_BASE_URL>/v1/search?query=...&checkIn=...&checkOut=...&guests=...&bbox=...`
+- Calls GET `https://api.openrooms.net/v1/search?query=...&checkIn=...&checkOut=...&guests=...&bbox=...`
 - Results layout: responsive map/list split or list-only (grid on mobile)
 - Each result card shows: property name, photo, total price, cancellation badge, distance, quick actions
 - Sorting: by price (asc), review score (desc), distance (asc)
@@ -28,29 +33,29 @@ Build a production-ready, modern web UI for the Open Booking Network MVP that co
 - Empty state & skeleton loaders
 
 2) Property detail page `/property/:id`
-- Calls GET `<API_BASE_URL>/v1/property/:id`
-- Calls GET `<API_BASE_URL>/v1/offers?propertyId=:id&checkIn=...&checkOut=...`
+- Calls GET `https://api.openrooms.net/v1/property/:id`
+- Calls GET `https://api.openrooms.net/v1/offers?propertyId=:id&checkIn=...&checkOut=...`
 - Shows gallery, amenities, address/map, contact links
 - Offers table: room type, rate plan, total price, cancellation, inventory, CTA “Book”
-- Live updates: subscribe SSE to `<API_BASE_URL>/v1/availability/stream?propertyId=:id`
+- Live updates: subscribe SSE to `https://api.openrooms.net/v1/availability/stream?propertyId=:id`
   - On `event: delta` messages, update prices/inventory in-list with a soft highlight
 
 3) Checkout flow `/checkout`
 - Triggered from “Book” CTA with `propertyId`, `offerId`, `price` (currency/total), `stay` (checkIn/checkOut), `discoveryAppId`
 - Step A: Issue BIT
-  - POST `<API_BASE_URL>/v1/bit` with body `{ propertyId, offerId, price:{currency,total}, stay:{checkIn,checkOut}, discoveryAppId }`
+  - POST `https://api.openrooms.net/v1/bit` with body `{ propertyId, offerId, price:{currency,total}, stay:{checkIn,checkOut}, discoveryAppId }`
   - Receive `{ token }` (JWT)
 - Step B: Redeem BIT
-  - POST `<API_BASE_URL>/v1/bit/redeem` with `Authorization: Bearer <token>`
+  - POST `https://api.openrooms.net/v1/bit/redeem` with `Authorization: Bearer <token>`
   - Receive `{ checkoutSessionId, leadFeeBps }`
 - Step C: Payment
   - Collect guest details + card details (Stripe Elements recommended UI placeholder)
-  - POST `<API_BASE_URL>/v1/payments` with `{ checkoutSessionId, paymentMethodId }`
+  - POST `https://api.openrooms.net/v1/payments` with `{ checkoutSessionId, paymentMethodId }`
   - Show confirmation with booking summary and fee transparency
 
 4) Post-check-in flow (operator)
 - Add a minimal operator page or stub to simulate escrow release
-  - POST `<API_BASE_URL>/v1/escrow/release` with `{ bookingId }`
+  - POST `https://api.openrooms.net/v1/escrow/release` with `{ bookingId }`
   - Display `{ transferId, proofOfStayVC }`
 
 ## Components
@@ -121,7 +126,7 @@ vite.config.ts
 - POST `/v1/payments` → `{ status:"succeeded"|"requires_action"|"failed", bookingId? }`
 - POST `/v1/escrow/release` → `{ transferId, proofOfStayVC }`
 
-Note: Use `<API_BASE_URL>` placeholder for all calls. Assume JSON responses as shown.
+Note: Use the `VITE_API_BASE_URL` env at runtime (defaults to https://api.openrooms.net). Assume JSON responses as shown.
 
 ## Validation models (TypeScript, mirrored from schemas)
 Define minimal TS types aligned with our JSON Schemas (can refine as needed):
@@ -145,7 +150,7 @@ Define minimal TS types aligned with our JSON Schemas (can refine as needed):
 ## Deliverables
 - A working UI in a `clients/consumer-web/` folder
 - README in that folder with env setup and run instructions
-- `.env.example` with `NEXT_PUBLIC_API_BASE_URL=<API_BASE_URL>` and `DEV_MOCKS=false`
+- `.env.example` with `VITE_API_BASE_URL=https://api.openrooms.net` and `DEV_MOCKS=false`
 - Mock fixtures and toggle as described
 
 ## Visual style

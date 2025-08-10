@@ -1,0 +1,22 @@
+[Unit]
+Description=Open Booking Network - Search API
+After=network.target
+
+[Service]
+Type=simple
+User=openrooms
+Group=openrooms
+EnvironmentFile=@@ENV_FILE@@
+WorkingDirectory=@@APP_DIR@@
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=3
+# Allow binding to 3001 locally
+AmbientCapabilities=
+NoNewPrivileges=true
+# Logging
+StandardOutput=append:/var/log/openrooms/search-api.log
+StandardError=append:/var/log/openrooms/search-api.err
+
+[Install]
+WantedBy=multi-user.target

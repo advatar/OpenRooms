@@ -1,0 +1,311 @@
+openapi: 3.0.3
+info:
+  title: Open Booking Network - Search API (MVP)
+  version: 0.1.0
+  description: |
+    Minimal OpenAPI spec for the currently implemented Search API endpoints.
+    Future endpoints for Attribution (BIT) and Payments/Escrow will be added later.
+servers:
+  - url: http://localhost:3001
+    description: Local development (placeholder)
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+  /v1/search:
+    get:
+      summary: Search properties and offers
+      parameters:
+        - in: query
+          name: query
+          schema: { type: string }
+        - in: query
+          name: checkIn
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: checkOut
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: guests
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: bbox
+          schema: { type: string, description: "minLon,minLat,maxLon,maxLat" }
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  properties:
+                    type: array
+                    items: { $ref: '#/components/schemas/Property' }
+                  offers:
+                    type: array
+                    items: { $ref: '#/components/schemas/Offer' }
+  /v1/property/{id}:
+    get:
+      summary: Get a property by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Property
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Property'
+        '404':
+          description: Not found
+  /v1/offers:
+    get:
+      summary: List offers for a property and date range
+      parameters:
+        - in: query
+          name: propertyId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: checkIn
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: checkOut
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Offers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Offer'
+  /v1/availability/stream:
+    get:
+      summary: Server-Sent Events stream of availability/price deltas
+      parameters:
+        - in: query
+          name: propertyId
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE event stream with `event: delta` and JSON payload in `data:`
+
+  /v1/bit:
+    post:
+      summary: Issue a Booking Intent Token (BIT)
+      description: Issues a signed EdDSA JWT capped by LEAD_FEE_CAP_BPS.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BitIssueRequest'
+      responses:
+        '200':
+          description: BIT issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400': { description: Bad request }
+
+  /v1/bit/redeem:
+    post:
+      summary: Redeem a BIT
+      description: Provide a BIT as Bearer token in Authorization header.
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema: { type: string, example: 'Bearer <JWT>' }
+      responses:
+        '200':
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BitRedeemResponse'
+        '401': { description: Invalid or expired token }
+
+  /v1/payments:
+    post:
+      summary: Complete payment for a checkout session (simulated)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [checkoutSessionId]
+              properties:
+                checkoutSessionId: { type: string }
+      responses:
+        '200':
+          description: Payment succeeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [succeeded] }
+                  bookingId: { type: string }
+        '400': { description: Bad request }
+
+  /v1/escrow/release:
+    post:
+      summary: Release escrow after proof-of-stay (simulated)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bookingId]
+              properties:
+                bookingId: { type: string }
+      responses:
+        '200':
+          description: Escrow released
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscrowReleaseResponse'
+        '400': { description: Bad request }
+components:
+  schemas:
+    Geo:
+      type: object
+      properties:
+        lat: { type: number }
+        lon: { type: number }
+    Address:
+      type: object
+      properties:
+        country: { type: string }
+        locality: { type: string }
+        street: { type: string }
+        postalCode: { type: string }
+    Contact:
+      type: object
+      properties:
+        website: { type: string }
+        phone: { type: string }
+        email: { type: string }
+    Property:
+      type: object
+      required: [id, name, geo, address]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        geo: { $ref: '#/components/schemas/Geo' }
+        address: { $ref: '#/components/schemas/Address' }
+        contact: { $ref: '#/components/schemas/Contact' }
+        photos:
+          type: array
+          items: { type: string }
+        amenities:
+          type: array
+          items: { type: string }
+    OfferPrice:
+      type: object
+      properties:
+        currency: { type: string }
+        base: { type: number }
+        taxes: { type: number }
+        fees: { type: number }
+        total: { type: number }
+    Cancellation:
+      type: object
+      properties:
+        policy: { type: string }
+        freeUntil:
+          type: string
+          format: date-time
+          nullable: true
+    Offer:
+      type: object
+      required: [id, propertyId, roomTypeId, checkIn, checkOut, price, cancellation, inventory]
+      properties:
+        id: { type: string }
+        propertyId: { type: string }
+        roomTypeId: { type: string }
+        ratePlan: { type: string }
+        checkIn: { type: string, format: date }
+        checkOut: { type: string, format: date }
+        price: { $ref: '#/components/schemas/OfferPrice' }
+        cancellation: { $ref: '#/components/schemas/Cancellation' }
+        inventory: { type: integer }
+        terms:
+          type: object
+          properties:
+            payAt:
+              type: string
+              enum: [property, booking]
+        source: { type: string }
+    BitIssueRequest:
+      type: object
+      required: [propertyId, offerId, price, stay, discoveryAppId]
+      properties:
+        propertyId: { type: string }
+        offerId: { type: string }
+        discoveryAppId: { type: string }
+        leadFeeBps: { type: number }
+        price:
+          type: object
+          properties:
+            currency: { type: string }
+            base: { type: number }
+            taxes: { type: number }
+            fees: { type: number }
+            total: { type: number }
+        stay:
+          type: object
+          properties:
+            checkIn: { type: string, format: date }
+            checkOut: { type: string, format: date }
+            guests: { type: integer }
+    BitRedeemResponse:
+      type: object
+      properties:
+        checkoutSessionId: { type: string }
+        leadFeeBps: { type: number }
+    EscrowReleaseResponse:
+      type: object
+      properties:
+        transferId: { type: string }
+        proofOfStayVC:
+          type: object
+          properties:
+            type: { type: string, example: ProofOfStay }
+            bookingId: { type: string }
+            issuedAt: { type: string, format: date-time }

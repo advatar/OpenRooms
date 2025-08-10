@@ -1,0 +1,7 @@
+@@DOMAIN@@ {
+  encode gzip
+  log {
+    output file /var/log/openrooms/caddy-access.log
+  }
+  reverse_proxy 127.0.0.1:3001
+}

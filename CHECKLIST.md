@@ -1,29 +1,34 @@
+# Federation Pilot Checklist
+
 Awesome—here’s a concrete, buildable plan you can hand to a junior team. It’s modular, API-first, and gets you to a federation pilot in ~90 days.
 
-High-level architecture (what we’re building)
-	•	Federation Gateway (association- or PMS-run): normalizes property content, prices, and availability from multiple sources into a common Offer API.
-	•	Open Search API: public, read-optimized discovery/search + live availability deltas over SSE.
-	•	Attribution & Booking-Intent Service: issues short-lived, signed booking-intent tokens (BITs) so discovery apps get a small, capped lead fee without price-parity.
-	•	Payments/Escrow: card (Stripe Connect) for MVP; SEPA Instant later. Holds funds until check-in; splits out the capped lead fee.
-	•	Portable Reviews & Proof-of-Stay: escrow or PMS issues a verifiable receipt; reviews are signed and portable.
-	•	Transparency Log: append-only Merkle log for fees, ranking factors, paid placement.
-	•	Hotel Site Plugin: drop-in widget to redeem BITs and complete checkout with the hotel’s PMS/engine.
-	•	Reference Clients: consumer web app + hotel console.
+## High-level architecture (what we’re building)
 
-⸻
+- Federation Gateway (association- or PMS-run): normalizes property content, prices, and availability from multiple sources into a common Offer API.
+- Open Search API: public, read-optimized discovery/search + live availability deltas over SSE.
+- Attribution & Booking-Intent Service: issues short-lived, signed booking-intent tokens (BITs) so discovery apps get a small, capped lead fee without price-parity.
+- Payments/Escrow: card (Stripe Connect) for MVP; SEPA Instant later. Holds funds until check-in; splits out the capped lead fee.
+- Portable Reviews & Proof-of-Stay: escrow or PMS issues a verifiable receipt; reviews are signed and portable.
+- Transparency Log: append-only Merkle log for fees, ranking factors, paid placement.
+- Hotel Site Plugin: drop-in widget to redeem BITs and complete checkout with the hotel’s PMS/engine.
+- Reference Clients: consumer web app + hotel console.
 
-Phase 0 — Decisions & repos (Day 1–3)
+---
 
-Tech choices
-	•	Backend: TypeScript + Fastify, Postgres, Redis, NATS (optional)
-	•	Crypto: jose (JWT/JWS), DID:key or DID:web (later), Ed25519 keys
-	•	Infra: Docker Compose for dev; Terraform + Fly.io/Render/Vercel or k8s for prod
-	•	Payments (MVP): Stripe Connect (split payouts + platform fees)
-	•	Search: Postgres + pg_trgm + bounding-box geo; optional Typesense/Meilisearch later
-	•	Object store: S3-compatible (MinIO dev; Cloudflare R2 prod)
+## Phase 0 — Decisions & repos (Day 1–3)
+
+### Tech choices
+
+- Backend: TypeScript + Fastify, Postgres, Redis, NATS (optional)
+- Crypto: jose (JWT/JWS), DID:key or DID:web (later), Ed25519 keys
+- Infra: Docker Compose for dev; Terraform + Fly.io/Render/Vercel or k8s for prod
+- Payments (MVP): Stripe Connect (split payouts + platform fees)
+- Search: Postgres + pg_trgm + bounding-box geo; optional Typesense/Meilisearch later
+- Object store: S3-compatible (MinIO dev; Cloudflare R2 prod)
 
 Monorepo layout
 
+```text
 /booking-network
   /services
     /gateway
@@ -44,16 +49,18 @@ Monorepo layout
     docker-compose.yml
     terraform/
     k8s/
+```
 
 
-⸻
+---
 
-Phase 1 — Core schemas (Day 3–7)
+## Phase 1 — Core schemas (Day 3–7)
 
 Define JSON Schemas in /packages/schemas (keep them versioned):
 
-Property
+### Property
 
+```json
 {
   "$id": "Property",
   "type": "object",
@@ -69,9 +76,11 @@ Property
     "pms": {"type":"object","properties":{"vendor":{"type":"string"},"externalId":{"type":"string"}}}
   }
 }
+```
 
-RoomType
+### RoomType
 
+```json
 {
   "$id":"RoomType",
   "type":"object",
@@ -85,9 +94,11 @@ RoomType
     "beds":{"type":"array","items":{"type":"object","properties":{"type":{"type":"string"},"count":{"type":"integer"}}}}
   }
 }
+```
 
-Offer (normalized rate)
+### Offer (normalized rate)
 
+```json
 {
   "$id":"Offer",
   "type":"object",
@@ -115,9 +126,11 @@ Offer (normalized rate)
     "source":{"type":"string"} // which adapter
   }
 }
+```
 
-BookingIntentToken (BIT) — JWT claims
+### BookingIntentToken (BIT) — JWT claims
 
+```json
 {
   "$id":"BITClaims",
   "type":"object",
@@ -136,16 +149,18 @@ BookingIntentToken (BIT) — JWT claims
     "stay":{"type":"object","properties":{"checkIn":{"type":"string","format":"date"},"checkOut":{"type":"string","format":"date"}}}
   }
 }
+```
 
 
-⸻
+---
 
-Phase 2 — Gateway service (Week 2)
+## Phase 2 — Gateway service (Week 2)
 
 Purpose: ingest from PMS/channel managers and normalize to Property, RoomType, Offer.
 
-DB (Postgres)
+### DB (Postgres)
 
+```sql
 create table properties(
   id text primary key, name text, geo point, address jsonb, contact jsonb,
   photos jsonb, amenities text[], pms jsonb, updated_at timestamptz default now()
@@ -164,34 +179,40 @@ create table offers(
   inventory int, terms jsonb, source text, updated_at timestamptz default now()
 );
 create index on offers(property_id, check_in, check_out);
+```
 
-Adapters
-Create /services/gateway/src/adapters/{pms}.ts (start with CSV/JSON mock + one real PMS later). Each adapter yields normalized objects.
+### Adapters
+Create `/services/gateway/src/adapters/{pms}.ts` (start with CSV/JSON mock + one real PMS later). Each adapter yields normalized objects.
 
-Upsert pipeline
-	•	Poll adapters every N minutes + webhooks if available.
-	•	Write normalized rows with ON CONFLICT DO UPDATE.
-	•	Publish delta events to Redis Stream offers:delta:
+### Upsert pipeline
 
+- Poll adapters every N minutes + webhooks if available.
+- Write normalized rows with ON CONFLICT DO UPDATE.
+- Publish delta events to Redis Stream `offers:delta`:
+
+```json
 { "type":"upsert", "offerId":"...", "propertyId":"...", "changed":["price","inventory"], "at":"2025-08-10T07:00:00Z" }
+```
 
-S3 media
-Upload canonical photos to /properties/{id}/ and store signed URLs.
+### S3 media
+Upload canonical photos to `/properties/{id}/` and store signed URLs.
 
-⸻
+---
 
-Phase 3 — Open Search API (Week 3)
+## Phase 3 — Open Search API (Week 3)
 
 Fastify service at /services/search-api.
 
-Endpoints
-	•	GET /v1/search?query=stockholm&checkIn=2025-10-12&checkOut=2025-10-14&guests=2&bbox=...
-	•	GET /v1/property/:id
-	•	GET /v1/offers?propertyId=...&checkIn=...&checkOut=...
-	•	GET /v1/availability/stream?propertyId=... (SSE pushing price/inventory deltas)
+### Endpoints
 
-SSE example (server)
+- GET `/v1/search?query=stockholm&checkIn=2025-10-12&checkOut=2025-10-14&guests=2&bbox=...`
+- GET `/v1/property/:id`
+- GET `/v1/offers?propertyId=...&checkIn=...&checkOut=...`
+- GET `/v1/availability/stream?propertyId=...` (SSE pushing price/inventory deltas)
 
+### SSE example (server)
+
+```ts
 fastify.get('/v1/availability/stream', async (req, reply) => {
   reply.raw.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -203,10 +224,12 @@ fastify.get('/v1/availability/stream', async (req, reply) => {
     reply.raw.write(`event: delta\ndata: ${msg}\n\n`);
   });
 });
+```
 
-Ranking (transparent default)
-	•	Score = f(total price, free cancellation, reviews score, distance, availability)
-	•	If paid placement ever exists: include sponsored:true and log every impression → Transparency Log.
+### Ranking (transparent default)
+
+- Score = f(total price, free cancellation, reviews score, distance, availability)
+- If paid placement ever exists: include `sponsored: true` and log every impression → Transparency Log.
 
 ⸻
 

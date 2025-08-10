@@ -6,6 +6,12 @@ This repo scaffolds the minimal runnable pieces from the checklist:
 - Open Search API (Fastify + Postgres + Redis) in `services/search-api/`
 - Dev infra via Docker Compose in `ops/docker-compose.yml`
 
+## Pitch
+
+For the problem, vision, and why this matters, see the project pitch:
+
+- [Read the Pitch (PITCH.md)](./PITCH.md)
+
 ## Quick start
 
 Prereqs: Node 20+, Docker Desktop.

@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { Pool } from 'pg';
+import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 
 async function main() {
   const pool = new Pool({
@@ -13,6 +15,28 @@ async function main() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // Optional seed admin user (requires migrations to have run)
+    const seedEmail = process.env.SEED_ADMIN_EMAIL;
+    const seedPassword = process.env.SEED_ADMIN_PASSWORD;
+    if (seedEmail && seedPassword) {
+      try {
+        const { rows: tableCheck } = await client.query("select to_regclass('public.admin_users') as exists");
+        if (tableCheck[0]?.exists) {
+          const hash = await bcrypt.hash(seedPassword, 10);
+          await client.query(
+            `insert into admin_users (id, email, password_hash, role)
+             values ($1, $2, $3, 'admin')
+             on conflict (email) do nothing`,
+            ['adm_' + randomUUID(), seedEmail, hash]
+          );
+          console.log(`Seed admin ensured for email ${seedEmail}`);
+        } else {
+          console.warn('Skipping admin user seed: admin_users table not found (run migrations first).');
+        }
+      } catch (e) {
+        console.warn('Skipping admin user seed due to error:', (e as any).message);
+      }
+    }
     // Stockholm sample data
     type Prop = {
       id: string;

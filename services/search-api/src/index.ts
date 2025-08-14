@@ -12,8 +12,18 @@ import { Pool } from 'pg';
 import { createClient } from 'redis';
 import { SignJWT, importJWK, jwtVerify, JWK } from 'jose';
 import { randomUUID } from 'crypto';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
+import { existsSync, mkdirSync } from 'fs';
+import path from 'path';
+import adminRoutes from './admin';
 
 const PORT = Number(process.env.PORT || 3001);
+const UPLOAD_DIR = process.env.UPLOAD_DIR || '/var/openrooms/uploads';
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || '';
+const TOKEN_TTL_SECONDS = Number(process.env.TOKEN_TTL_SECONDS || 8 * 3600);
+const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_BYTES || 10 * 1024 * 1024);
 
 // Postgres pool
 const pool = new Pool({
@@ -117,6 +127,11 @@ export async function buildServer() {
   await fastify.register(rateLimit, { max: 100, timeWindow: '1 minute' });
   await fastify.register(swagger, { openapi: { info: { title: 'Open Booking Network API', version: '0.1.0' } } });
   await fastify.register(swaggerUi, { routePrefix: '/docs' });
+
+  // File uploads and static serving
+  await fastify.register(multipart, { limits: { fileSize: MAX_UPLOAD_BYTES } });
+  if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true });
+  await fastify.register(fastifyStatic, { root: path.resolve(UPLOAD_DIR), prefix: '/uploads/' });
 
   // CORS for UI and external clients
   fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply, payload: any) => {
@@ -363,6 +378,31 @@ export async function buildServer() {
     };
     return { transferId, proofOfStayVC };
   });
+
+  // Admin routes, mounted under /v1/admin if configured
+  if (process.env.ADMIN_JWT_SECRET) {
+    await fastify.register(async (instance) => {
+      await adminRoutes(instance, {
+        pool,
+        uploadDir: process.env.UPLOAD_DIR,
+        baseUrl: process.env.BASE_URL,
+        adminJwtSecret: process.env.ADMIN_JWT_SECRET,
+        tokenTtlSeconds: Number(process.env.TOKEN_TTL_SECONDS),
+        maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES)
+      });
+    }, { prefix: '/v1/admin' });
+  } else {
+    fastify.log.warn('ADMIN_JWT_SECRET not set; /v1/admin routes are disabled');
+  }
+
+  // Static file serving
+  fastify.register(require('@fastify/static'), {
+    root: path.join(__dirname, 'public'),
+    prefix: '/public/',
+  });
+
+  // Multipart handling
+  fastify.register(require('@fastify/multipart'));
 
   return fastify;
 }

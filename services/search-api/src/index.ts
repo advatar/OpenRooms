@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import Fastify from 'fastify';
+import Fastify from 'fastify/fastify.js';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
@@ -8,7 +8,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import Stripe from 'stripe';
-import { Pool } from 'pg';
+import pg from 'pg';
 import { createClient } from 'redis';
 import { SignJWT, importJWK, jwtVerify, JWK } from 'jose';
 import { randomUUID } from 'crypto';
@@ -18,6 +18,7 @@ import { existsSync, mkdirSync } from 'fs';
 import path from 'path';
 import adminRoutes from './admin';
 
+const { Pool } = pg;
 const PORT = Number(process.env.PORT || 3001);
 const UPLOAD_DIR = process.env.UPLOAD_DIR || '/var/openrooms/uploads';
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -142,7 +143,6 @@ export async function buildServer() {
     reply.header('x-request-id', (request as any).id);
     return payload;
   });
-  fastify.options('/*', async (_req: any, reply: any) => reply.code(200).send());
 
   fastify.setErrorHandler((err, req, reply) => {
     const status = (err as any).statusCode || (err instanceof AppError ? err.statusCode : 500);
@@ -380,29 +380,20 @@ export async function buildServer() {
   });
 
   // Admin routes, mounted under /v1/admin if configured
-  if (process.env.ADMIN_JWT_SECRET) {
+  if (ADMIN_JWT_SECRET) {
     await fastify.register(async (instance) => {
       await adminRoutes(instance, {
         pool,
-        uploadDir: process.env.UPLOAD_DIR,
-        baseUrl: process.env.BASE_URL,
-        adminJwtSecret: process.env.ADMIN_JWT_SECRET,
-        tokenTtlSeconds: Number(process.env.TOKEN_TTL_SECONDS),
-        maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES)
+        uploadDir: UPLOAD_DIR,
+        baseUrl: BASE_URL,
+        adminJwtSecret: ADMIN_JWT_SECRET,
+        tokenTtlSeconds: TOKEN_TTL_SECONDS,
+        maxUploadBytes: MAX_UPLOAD_BYTES
       });
     }, { prefix: '/v1/admin' });
   } else {
     fastify.log.warn('ADMIN_JWT_SECRET not set; /v1/admin routes are disabled');
   }
-
-  // Static file serving
-  fastify.register(require('@fastify/static'), {
-    root: path.join(__dirname, 'public'),
-    prefix: '/public/',
-  });
-
-  // Multipart handling
-  fastify.register(require('@fastify/multipart'));
 
   return fastify;
 }

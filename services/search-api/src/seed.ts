@@ -1,7 +1,9 @@
 import 'dotenv/config';
-import { Pool } from 'pg';
+import pg from 'pg';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
+
+const { Pool } = pg;
 
 async function main() {
   const pool = new Pool({
@@ -282,9 +284,19 @@ async function main() {
     for (const p of props) {
       await client.query(
         `insert into properties (id, name, geo, address, contact, photos, amenities, pms)
-         values ($1, $2, point($3, $4), $5, $6, $7, $8, $9)
+         values ($1, $2, point($3, $4), $5::jsonb, $6::jsonb, $7::jsonb, $8::text[], $9::jsonb)
          on conflict (id) do update set name = excluded.name, updated_at = now();`,
-        [p.id, p.name, p.lat, p.lon, p.address, p.contact, p.photos, p.amenities, p.pms]
+        [
+          p.id,
+          p.name,
+          p.lat,
+          p.lon,
+          JSON.stringify(p.address),
+          JSON.stringify(p.contact),
+          JSON.stringify(p.photos),
+          p.amenities,
+          JSON.stringify(p.pms)
+        ]
       );
 
       for (const rt of p.roomTypes) {
@@ -310,10 +322,10 @@ async function main() {
               off.ratePlan,
               off.checkIn,
               off.checkOut,
-              off.price,
-              off.cancellation,
+              JSON.stringify(off.price),
+              JSON.stringify(off.cancellation),
               off.inventory,
-              off.terms,
+              JSON.stringify(off.terms),
               off.source,
             ]
           );

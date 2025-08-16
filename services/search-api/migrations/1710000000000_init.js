@@ -14,7 +14,8 @@ exports.up = (pgm) => {
     pms: { type: 'jsonb' },
     updated_at: { type: 'timestamptz', default: pgm.func('now()') }
   });
-  pgm.createIndex('properties', 'name', { method: 'gin', expression: `to_tsvector('simple', name)` });
+  // Use to_tsvector expression for GIN index
+  pgm.sql("CREATE INDEX IF NOT EXISTS properties_name_idx ON properties USING GIN (to_tsvector('simple', name));");
 
   pgm.createTable('room_types', {
     id: { type: 'text', primaryKey: true },

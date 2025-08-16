@@ -1,12 +1,10 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 import { randomUUID } from 'crypto';
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
-import multipart from '@fastify/multipart';
-import fastifyStatic from '@fastify/static';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import path from 'path';
 import { parse as csvParse } from 'csv-parse';
@@ -180,14 +178,8 @@ const VatReportGenerateBody = z.object({
 export default async function adminRoutes(fastify: FastifyInstance, opts: AdminPluginOpts) {
   const { pool, uploadDir, baseUrl, adminJwtSecret, tokenTtlSeconds, maxUploadBytes } = opts;
 
-  // Register multipart and static within plugin scope (idempotent/ok if already registered globally)
-  if (!(fastify as any).hasMultipart) await fastify.register(multipart, { limits: { fileSize: maxUploadBytes } });
+  // Ensure upload directory exists; multipart/static are registered globally in index.ts
   await ensureDir(uploadDir);
-  try {
-    await fastify.register(fastifyStatic, { root: uploadDir, prefix: '/uploads/' });
-  } catch (_) {
-    // may already be registered by root; ignore
-  }
 
   // Admin-only error handler
   fastify.setErrorHandler((err, req, reply) => {

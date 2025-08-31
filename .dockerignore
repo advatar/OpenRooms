@@ -1,0 +1,12 @@
+# Global docker ignore for this repo
+.git
+.gitignore
+node_modules
+**/node_modules
+**/dist
+**/.env
+ops/env/*.env
+coverage
+uploads
+npm-debug.log*
+yarn-error.log*

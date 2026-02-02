@@ -24,7 +24,7 @@
     "bcryptjs": "2.4.3",
     "csv-parse": "5.5.6",
     "dotenv": "16.4.5",
-    "fastify": "^4.28.1",
+    "fastify": "^5.7.3",
     "jose": "5.2.4",
     "mime-types": "2.1.35",
     "pg": "8.12.0",
